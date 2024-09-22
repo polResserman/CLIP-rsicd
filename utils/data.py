@@ -17,11 +17,13 @@ from torchvision.transforms import (
     Resize
 )
 from torchvision.transforms.functional import InterpolationMode
-
+import io
 import jsonlines
 from pathlib import Path
 from typing import Optional, Callable
-
+import pandas as pd
+import requests
+from PIL import Image
 
 # adopted form https://github.com/huggingface/transformers/blob/master/examples/research_projects/jax-projects/hybrid_clip/run_hybrid_clip.py
 class Transform(torch.nn.Module):
@@ -78,7 +80,7 @@ class ImageTextDataset(VisionDataset):
 
     def __init__(
         self,
-        root: str,
+        csv_file: str,
         split: str, 
         captions_per_image:int = 5,
         augment_captions:bool = True,
@@ -86,32 +88,30 @@ class ImageTextDataset(VisionDataset):
         target_transform: Optional[Callable] = None,
         transforms: Optional[Callable] = None,
     ):
-        super().__init__(root, transforms, transform, target_transform)
+        super().__init__(csv_file, transforms, transform, target_transform)
         self.root = root
         if augment_captions:
             prefix = "textaug_"
         else:
             prefix = ""
-        filepaths = list(Path(root).glob(f"{prefix}{split}*.jsonl"))
+        self.df = pd.read_csv(csv_file)
         fps_empty_msg = f"""\
         The `filepaths` is empty. Please make sure that `root` folder contains jsonl files
         named properly: [textaug_]{split}*.jsonl.
         `textaug_` prefix is expected if `augment_captions` is `True`.
         """
-        assert len(filepaths) > 0, fps_empty_msg
         
         self.captions = []
         self.image_paths = []
-        for count, filepath in enumerate(filepaths):
-            with jsonlines.open(filepath, "r") as reader:
-                for example in reader:
-                    self.captions.extend(example["captions"][:captions_per_image])
-                    self.image_paths.extend([example["filename"]] * captions_per_image)
-        print(f"{count+1} input files for {split} split found")
+        for i, row in df.iterrows():
+            self.image_paths.append(row["url"])
+            self.captions.append(row["text_caption"])
     
     def _load_image(self, idx: int):
-        path = f"{self.root}/{self.image_paths[idx]}"
-        return read_image(path, mode=ImageReadMode.RGB)
+        response = requests.get(url)
+        imageStream = io.BytesIO(response.content)
+        imageFile = Image.open(imageStream)
+        return imageFile
 
     def _load_target(self, idx):
         return self.captions[idx]
