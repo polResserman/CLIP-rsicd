@@ -1,4 +1,5 @@
 import torch
+import torchvision
 from torchvision.datasets import VisionDataset
 from torchvision.io import ImageReadMode, read_image
 from torchvision.transforms import (
@@ -89,7 +90,7 @@ class ImageTextDataset(VisionDataset):
         transforms: Optional[Callable] = None,
     ):
         super().__init__(csv_file, transforms, transform, target_transform)
-        self.root = root
+        # self.root = root
         if augment_captions:
             prefix = "textaug_"
         else:
@@ -103,15 +104,15 @@ class ImageTextDataset(VisionDataset):
         
         self.captions = []
         self.image_paths = []
-        for i, row in df.iterrows():
+        for i, row in self.df.iterrows():
             self.image_paths.append(row["url"])
             self.captions.append(row["text_caption"])
     
     def _load_image(self, idx: int):
-        response = requests.get(url)
+        response = requests.get(self.image_paths[idx])
         imageStream = io.BytesIO(response.content)
         imageFile = Image.open(imageStream)
-        return imageFile
+        return torchvision.transforms.functional.pil_to_tensor(imageFile)
 
     def _load_target(self, idx):
         return self.captions[idx]
