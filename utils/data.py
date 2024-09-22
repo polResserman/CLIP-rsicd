@@ -105,6 +105,8 @@ class ImageTextDataset(VisionDataset):
         self.captions = []
         self.image_paths = []
         for i, row in self.df.iterrows():
+            if not row["text_caption"]:
+              continue
             self.image_paths.append(row["url"])
             self.captions.append(row["text_caption"])
     
@@ -115,7 +117,7 @@ class ImageTextDataset(VisionDataset):
         return torchvision.transforms.functional.pil_to_tensor(imageFile)
 
     def _load_target(self, idx):
-        return self.captions[idx]
+        return [self.captions[idx]]
 
     def __getitem__(self, index: int):
         image = self._load_image(index)
